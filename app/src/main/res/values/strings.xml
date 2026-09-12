@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Solar Monitor</string>
+
+    <!-- Login -->
+    <string name="hint_username">Username</string>
+    <string name="hint_password">Password</string>
+    <string name="sign_in">Sign in</string>
+    <string name="login_missing">Enter username and password</string>
+
+    <!-- Common -->
+    <string name="refresh">↻</string>
+    <string name="more">⋮</string>
+    <string name="back">‹</string>
+    <string name="prev">‹</string>
+    <string name="next">›</string>
+    <string name="retry">Retry</string>
+    <string name="no_data">No data</string>
+    <string name="loading">Loading…</string>
+    <string name="updated_at">Updated %1$s</string>
+    <string name="banner">Couldn\'t refresh (%1$s). Showing data from %2$s</string>
+    <string name="banner_short">Couldn\'t refresh (%1$s)</string>
+    <string name="empty_error">Couldn\'t load data (%1$s)</string>
+    <string name="session_expired">Session expired, sign in again</string>
+
+    <!-- Dashboard -->
+    <string name="online">● Online</string>
+    <string name="offline">● Offline</string>
+    <string name="tile_now">Now</string>
+    <string name="tile_today">Today</string>
+    <string name="tile_month">This month</string>
+    <string name="tile_year">This year</string>
+    <string name="tile_total">Lifetime</string>
+    <string name="todays_output">Today\'s output</string>
+    <string name="peak">Peak %1$s at %2$s</string>
+    <string name="row_history">History  ›</string>
+    <string name="row_device">Inverter details  ›</string>
+    <string name="logout">Log out</string>
+
+    <!-- History -->
+    <string name="history">History</string>
+    <string name="mode_day">Day</string>
+    <string name="mode_month">Month</string>
+    <string name="mode_year">Year</string>
+    <string name="mode_total">Total</string>
+    <string name="period_total">Total %1$s</string>
+
+    <!-- Device -->
+    <string name="device">Inverter</string>
+    <string name="reported_at">Reported %1$s</string>
+
+    <!-- Polish -->
+    <string name="login_subtitle">ShineMonitor account</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_refresh">Refresh</string>
+    <string name="cd_more">More options</string>
+    <string name="cd_prev">Previous period</string>
+    <string name="cd_next">Next period</string>
+
+    <!-- Pickers -->
+    <string name="pick_month_title">Choose month</string>
+    <string name="pick_year_title">Choose year</string>
+    <string name="cd_prev_year">Previous year</string>
+    <string name="cd_next_year">Next year</string>
+
+    <!-- Tile sub-lines -->
+    <string name="peak_short">peak %1$s at %2$s</string>
+    <string name="avg_per_day">avg %1$s/day</string>
+    <string name="avg_per_month">avg %1$s/month</string>
+    <string name="since">since %1$s</string>
+</resources>
