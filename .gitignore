@@ -1,0 +1,15 @@
+# build outputs
+build/
+.gradle/
+.kotlin/
+
+# local machine (SDK path carries a username) and signing material
+local.properties
+keystore/
+*.jks
+keystore.properties
+
+# IDE / macOS
+.idea/
+*.iml
+.DS_Store
