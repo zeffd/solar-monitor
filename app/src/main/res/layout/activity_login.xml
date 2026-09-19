@@ -32,17 +32,25 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/loginSubtitle"
             style="@style/TileLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
             android:text="@string/login_subtitle" />
 
+        <Spinner
+            android:id="@+id/company"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:contentDescription="@string/hint_company" />
+
         <EditText
             android:id="@+id/username"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="12dp"
             android:hint="@string/hint_username"
             android:importantForAutofill="no"
             android:inputType="text" />

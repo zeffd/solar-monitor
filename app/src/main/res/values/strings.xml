@@ -5,6 +5,7 @@
     <!-- Login -->
     <string name="hint_username">Username</string>
     <string name="hint_password">Password</string>
+    <string name="hint_company">Inverter company</string>
     <string name="sign_in">Sign in</string>
     <string name="login_missing">Enter username and password</string>
 
@@ -51,6 +52,7 @@
 
     <!-- Polish -->
     <string name="login_subtitle">ShineMonitor account</string>
+    <string name="login_subtitle_polycab">Polycab PV Solar Monitoring account</string>
     <string name="cd_back">Back</string>
     <string name="cd_refresh">Refresh</string>
     <string name="cd_more">More options</string>

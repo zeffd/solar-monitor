@@ -1,6 +1,7 @@
 # Solar Monitor
 
-A tiny Android app for solar inverters that report to **ShineMonitor** (Eybond).
+A tiny Android app for **KSolare** inverters reporting through **ShineMonitor**
+(Eybond), and **Polycab** inverters reporting through Polycab PV Solar Monitoring.
 It shows your live output, today's curve, and your energy history in a clean
 screen or two, using the same account you already have.
 
@@ -10,13 +11,14 @@ It replaces the vendor's **SmartClient** app:
 |---|---|---|
 | Download size | over 65 MB | under 100 KB |
 | Made by | Eybond, a Chinese manufacturer; closed source | open source, MIT |
-| Talks to | the vendor's servers | only `web.shinemonitor.com`, over HTTPS |
+| Talks to | the vendor's servers | the selected vendor service, over HTTPS |
 
 No third-party libraries, no analytics, and the only permission is Internet.
 
-> **Unofficial.** Not affiliated with or endorsed by Eybond or ShineMonitor.
+> **Unofficial.** Not affiliated with or endorsed by Eybond, ShineMonitor, or Polycab.
 > It reads your own plant through your own account and never changes anything
-> on the inverter.
+> on the inverter. Select the inverter company on the sign-in screen; existing
+> KSolare accounts keep their original ShineMonitor flow.
 
 ## What it shows
 
@@ -34,15 +36,16 @@ No third-party libraries, no analytics, and the only permission is Internet.
 
 Only in the app's private storage, never backed up, wiped by **Log out**:
 
-- your ShineMonitor username and the SHA-1 hash of your password (the
-  ShineMonitor protocol signs in with this hash, so treat it as a password);
+- your username and the credential needed to renew the selected vendor session
+  (a SHA-1 password hash for ShineMonitor; the Polycab API requires the entered
+  password, so treat app-private storage as sensitive);
 - the session token, valid for 5 days;
 - the last responses, so screens open instantly.
 
 ## Requirements
 
 - Android 8.0 or newer.
-- A ShineMonitor account, the one you use on `shinemonitor.com` or in SmartClient.
+- A KSolare/ShineMonitor account or a Polycab PV Solar Monitoring account.
 
 ## Install
 

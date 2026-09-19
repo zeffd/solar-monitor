@@ -15,6 +15,23 @@ class Engine(
     private val store: SessionStore,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
+    private var hosts: List<String> = HOSTS
+    private var credentialForLogin: (String) -> String = Signer::sha1Hex
+    private var retryOtherHostOnNotFound: Boolean = true
+
+    /** Provider-specific login rules, kept separate so the original constructor stays source-compatible. */
+    constructor(
+        api: Api,
+        store: SessionStore,
+        hosts: List<String>,
+        credentialForLogin: (String) -> String,
+        retryOtherHostOnNotFound: Boolean,
+    ) : this(api, store) {
+        this.hosts = hosts
+        this.credentialForLogin = credentialForLogin
+        this.retryOtherHostOnNotFound = retryOtherHostOnNotFound
+    }
+
     companion object {
         const val RENEW_MARGIN_MS = 3_600_000L
         val HOSTS = listOf("web.shinemonitor.com", "web1.shinemonitor.com")
@@ -22,18 +39,18 @@ class Engine(
         private const val ERR_NOT_FOUND_USR = 261
     }
 
-    /** Hashes the password, tries each node in order on "user not found", stores credentials and session on success. */
+    /** Transforms the password for the selected provider, tries its nodes, then stores credentials and session. */
     fun login(username: String, password: String): Session {
-        val pwdSha1 = Signer.sha1Hex(password)
+        val credential = credentialForLogin(password)
         var notFound: ApiException? = null
-        for (host in HOSTS) {
+        for (host in hosts) {
             try {
-                val session = api.login(host, username, pwdSha1)
-                store.saveCredentials(username, pwdSha1)
+                val session = api.login(host, username, credential)
+                store.saveCredentials(username, credential)
                 store.saveSession(session)
                 return session
             } catch (e: ApiException) {
-                if (e.code == ERR_NOT_FOUND_USR) notFound = e else throw e
+                if (retryOtherHostOnNotFound && e.code == ERR_NOT_FOUND_USR) notFound = e else throw e
             }
         }
         throw notFound ?: IllegalStateException("no hosts")
@@ -57,10 +74,10 @@ class Engine(
     }
 
     private fun relogin(): Session {
-        val (username, pwdSha1) = store.loadCredentials() ?: throw AuthRequiredException()
-        val host = store.loadSession()?.host ?: HOSTS[0]
+        val (username, credential) = store.loadCredentials() ?: throw AuthRequiredException()
+        val host = store.loadSession()?.host ?: hosts.first()
         val session = try {
-            api.login(host, username, pwdSha1)
+            api.login(host, username, credential)
         } catch (e: ApiException) {
             throw AuthRequiredException(e)
         }

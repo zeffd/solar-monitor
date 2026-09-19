@@ -8,9 +8,11 @@ import app.solarmonitor.api.Actions
 import app.solarmonitor.api.Api
 import app.solarmonitor.api.BadResponseException
 import app.solarmonitor.api.Parsers
+import app.solarmonitor.api.PolycabClient
 import app.solarmonitor.api.ShineClient
 import app.solarmonitor.model.Device
 import app.solarmonitor.model.Field
+import app.solarmonitor.model.InverterCompany
 import app.solarmonitor.model.Plant
 import app.solarmonitor.model.Point
 import app.solarmonitor.model.Session
@@ -56,8 +58,6 @@ class SolarRepo private constructor(context: Context) {
 
     val prefs = Prefs(context)
     private val cache = Cache(File(context.filesDir, "cache"))
-    private val client: Api = ShineClient()
-    private val engine = Engine(client, prefs)
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
 
@@ -76,7 +76,7 @@ class SolarRepo private constructor(context: Context) {
         val c = Cancellable()
         executor.execute {
             try {
-                val session = engine.login(username, password)
+                val session = engine().login(username, password)
                 post(c, cb, Outcome.Fresh(session, now()))
             } catch (e: Exception) {
                 post(c, cb, Outcome.Error(e, null, null))
@@ -98,10 +98,10 @@ class SolarRepo private constructor(context: Context) {
             }
         },
         fresh = {
-            engine.withSession { s ->
+            engine().withSession { s ->
                 val plant = fetchPlant(s)
                 val date = today()
-                val curveJson = client.get(s, Actions.powerCurve(plant.pid, date))
+                val curveJson = api().get(s, Actions.powerCurve(plant.pid, date))
                 cache.put("curve:$date", curveJson)
                 Dashboard(plant, Parsers.parseSeries(curveJson, KEY_OUTPUT_POWER))
             }
@@ -120,11 +120,11 @@ class SolarRepo private constructor(context: Context) {
             }
         },
         fresh = {
-            engine.withSession { s ->
-                val devicesJson = client.get(s, Actions.devices())
+            engine().withSession { s ->
+                val devicesJson = api().get(s, Actions.devices())
                 cache.put(KEY_DEVICES, devicesJson)
                 val device = pickDevice(Parsers.parseDevices(devicesJson))
-                val lastJson = client.get(s, Actions.lastData(device))
+                val lastJson = api().get(s, Actions.lastData(device))
                 cache.put(KEY_LASTDATA, lastJson)
                 DeviceReport(device, Parsers.parseFields(lastJson))
             }
@@ -155,9 +155,9 @@ class SolarRepo private constructor(context: Context) {
                 }
             },
             fresh = {
-                engine.withSession { s ->
+                engine().withSession { s ->
                     val pid = requirePlantId(s)
-                    val json = client.get(s, actionFor(period, pid))
+                    val json = api().get(s, actionFor(period, pid))
                     cache.put(period.cacheKey(), json)
                     val points = Parsers.parseSeries(json, seriesKey(period.mode))
                     val dayKwh = if (period.mode == Mode.DAY) fetchDayKwh(s, pid, period.date, today) else null
@@ -218,7 +218,7 @@ class SolarRepo private constructor(context: Context) {
 
     /** Fetches the plant list, remembers the chosen plant's id and timezone, returns it. */
     private fun fetchPlant(s: Session): Plant {
-        val plantsJson = client.get(s, Actions.plants())
+        val plantsJson = api().get(s, Actions.plants())
         val plant = pickPlant(Parsers.parsePlants(plantsJson))
         cache.put(KEY_PLANTS, plantsJson)
         prefs.plantId = plant.pid
@@ -278,8 +278,22 @@ class SolarRepo private constructor(context: Context) {
         val json = if (cachedEntry != null && month.isCompleteAt(cachedEntry.savedAt, plantZone())) {
             cachedEntry.json
         } else {
-            client.get(s, Actions.energyPerDay(pid, YearMonth.from(date))).also { cache.put(month.cacheKey(), it) }
+            api().get(s, Actions.energyPerDay(pid, YearMonth.from(date))).also { cache.put(month.cacheKey(), it) }
         }
         return Parsers.parseSeries(json, "perday").firstOrNull { it.ts.toLocalDate() == date }?.value
+    }
+
+    /** Builds the selected provider on demand: a selection is made immediately before login. */
+    private fun api(): Api = when (prefs.company) {
+        InverterCompany.KSOLARE -> ShineClient()
+        InverterCompany.POLYCAB -> PolycabClient()
+    }
+
+    private fun engine(): Engine = when (prefs.company) {
+        InverterCompany.KSOLARE -> Engine(api(), prefs)
+        // Polycab signs in with the entered password, not ShineMonitor's SHA-1 password hash.
+        InverterCompany.POLYCAB -> Engine(
+            api(), prefs, listOf(PolycabClient.BASE_URL), { it }, false,
+        )
     }
 }

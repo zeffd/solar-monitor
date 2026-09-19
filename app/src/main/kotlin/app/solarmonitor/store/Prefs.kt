@@ -2,6 +2,7 @@ package app.solarmonitor.store
 
 import android.content.Context
 import android.content.SharedPreferences
+import app.solarmonitor.model.InverterCompany
 import app.solarmonitor.model.Session
 import app.solarmonitor.repo.SessionStore
 
@@ -38,6 +39,13 @@ class Prefs(context: Context) : SessionStore {
     /** True when both a session and the credentials to renew it are stored. */
     fun hasSession(): Boolean = loadSession() != null && loadCredentials() != null
 
+    /** Service selected at sign-in. Old installations default to their original KSolare flow. */
+    var company: InverterCompany
+        get() = runCatching {
+            InverterCompany.valueOf(sp.getString(KEY_COMPANY, InverterCompany.KSOLARE.name)!!)
+        }.getOrDefault(InverterCompany.KSOLARE)
+        set(value) { sp.edit().putString(KEY_COMPANY, value.name).apply() }
+
     /** Selected plant id, or -1 when none has been chosen yet. */
     var plantId: Long
         get() = sp.getLong(KEY_PLANT_ID, -1L)
@@ -73,5 +81,6 @@ class Prefs(context: Context) : SessionStore {
         const val KEY_PLANT_ID = "plantId"
         const val KEY_PLANT_TZ = "plantTz"
         const val KEY_PLANT_INSTALL = "plantInstall"
+        const val KEY_COMPANY = "company"
     }
 }

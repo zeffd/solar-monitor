@@ -8,11 +8,15 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
+import android.widget.ArrayAdapter
+import android.widget.AdapterView
+import android.widget.Spinner
 import android.widget.TextView
 import app.solarmonitor.R
 import app.solarmonitor.repo.Cancellable
 import app.solarmonitor.repo.Outcome
 import app.solarmonitor.repo.SolarRepo
+import app.solarmonitor.model.InverterCompany
 
 /** Launcher. Skips straight to the Dashboard when a session is stored. */
 class LoginActivity : Activity() {
@@ -29,9 +33,20 @@ class LoginActivity : Activity() {
 
         val username = findViewById<EditText>(R.id.username)
         val password = findViewById<EditText>(R.id.password)
+        val company = findViewById<Spinner>(R.id.company)
+        val subtitle = findViewById<TextView>(R.id.loginSubtitle)
         val signIn = findViewById<Button>(R.id.signIn)
         val error = findViewById<TextView>(R.id.error)
         val progress = findViewById<ProgressBar>(R.id.progress)
+        val companies = InverterCompany.entries.toList()
+        company.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, companies.map { it.label })
+        company.setSelection(companies.indexOf(repo.prefs.company).coerceAtLeast(0))
+        company.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                subtitle.setText(if (companies[position] == InverterCompany.POLYCAB) R.string.login_subtitle_polycab else R.string.login_subtitle)
+            }
+        }
         intent.getStringExtra(Nav.EXTRA_MESSAGE)?.let {
             error.text = it
             error.visibility = View.VISIBLE
@@ -45,6 +60,7 @@ class LoginActivity : Activity() {
                 error.visibility = View.VISIBLE
                 return
             }
+            repo.prefs.company = companies[company.selectedItemPosition]
             error.visibility = View.GONE
             progress.visibility = View.VISIBLE
             signIn.isEnabled = false

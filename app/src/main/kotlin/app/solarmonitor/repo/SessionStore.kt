@@ -7,7 +7,7 @@ interface SessionStore {
     fun loadSession(): Session?
     fun saveSession(session: Session)
 
-    /** Username and SHA-1 hex of the password, or null when nobody is signed in. */
+    /** Username and the provider-specific login credential, or null when nobody is signed in. */
     fun loadCredentials(): Pair<String, String>?
     fun saveCredentials(username: String, pwdSha1: String)
 }
