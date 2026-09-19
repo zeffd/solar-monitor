@@ -34,8 +34,10 @@ class PolycabClient(
     override fun login(host: String, username: String, pwdSha1: String): Session {
         val root = response(post("$BASE_URL/UserLogin", null, mapOf("username" to username, "password" to pwdSha1)))
         val token = firstString(root, "token") ?: throw BadResponseException("Polycab login did not return a token")
-        // Polycab accepts the account name as MemberID on the monitoring routes.
-        return Session(token, username, clock() + 24 * 60 * 60 * 1000L, BASE_URL)
+        // The API returns the numeric account id used by its monitoring routes. Older
+        // accounts may omit it, in which case the login name is still accepted.
+        val memberId = firstString(root, "id") ?: username
+        return Session(token, memberId, clock() + 24 * 60 * 60 * 1000L, BASE_URL)
     }
 
     override fun get(session: Session, action: String): String {
@@ -54,21 +56,45 @@ class PolycabClient(
     }
 
     private fun plants(session: Session): String {
-        val root = response(post("$BASE_URL/monitoringOverView", session.token, mapOf("MemberID" to session.secret)))
+        // monitoringOverView is only an aggregate. getAllPlantsInfo is the route the
+        // official app uses for its individual plant records and production totals.
+        val root = response(post("$BASE_URL/getAllPlantsInfo", session.token, mapOf(
+            "memberAutoID" to session.secret, "groupID" to "", "inDate" to LocalDate.now().toString(),
+        )))
         val rows = rows(root)
         val plants = JSONArray()
         rows.forEachIndexed { index, row ->
+            val stats = row.optJSONObject("statistic")
+            val production = stats?.optJSONObject("production")
             val id = number(row, "GroupAutoID", "groupID", "GroupId", "id", "AutoId").toLongOrNull() ?: (index + 1).toLong()
             plants.put(JSONObject().apply {
                 put("pid", id)
                 put("name", text(row, "GroupName", "groupName", "plantName", "name").ifEmpty { "Polycab plant" })
                 put("status", if (number(row, "online", "status", "Status") == "0") 0 else 1)
-                put("nominalPower", number(row, "capacity", "Capacity", "nominalPower", "ratedPower"))
-                put("outputPower", number(row, "power", "Power", "outputPower", "currentPower"))
-                put("energy", number(row, "todayEnergy", "TodayEnergy", "energy", "E_today"))
+                put("nominalPower", number(stats ?: row, "capacity", "Capacity", "nominalPower", "ratedPower"))
+                put("outputPower", number(stats ?: row, "power", "Power", "outputPower", "currentPower"))
+                put("energy", number(production ?: row, "today", "todayEnergy", "TodayEnergy", "energy", "E_today"))
                 put("energyMonth", number(row, "monthEnergy", "MonthEnergy", "energyMonth"))
                 put("energyYear", number(row, "yearEnergy", "YearEnergy", "energyYear"))
-                put("energyTotal", number(row, "totalEnergy", "TotalEnergy", "energyTotal", "E_total"))
+                put("energyTotal", number(production ?: row, "total", "totalEnergy", "TotalEnergy", "energyTotal", "E_total"))
+                put("address", JSONObject().put("timezone", 19800))
+            })
+        }
+        if (plants.length() == 0) {
+            // Some valid Polycab accounts expose only account-level statistics. Show
+            // those real values instead of treating the account as a failed login.
+            val stats = root.optJSONObject("statistic")
+            val production = stats?.optJSONObject("production")
+            plants.put(JSONObject().apply {
+                put("pid", 0)
+                put("name", "Polycab monitoring summary")
+                put("status", 0)
+                put("nominalPower", number(stats ?: JSONObject(), "capacity"))
+                put("outputPower", number(stats ?: JSONObject(), "power"))
+                put("energy", number(production ?: JSONObject(), "today"))
+                put("energyMonth", 0)
+                put("energyYear", 0)
+                put("energyTotal", number(production ?: JSONObject(), "total"))
                 put("address", JSONObject().put("timezone", 19800))
             })
         }
@@ -102,6 +128,8 @@ class PolycabClient(
     }
 
     private fun series(session: Session, route: String, params: Map<String, String>, key: String): String {
+        // Account-level summaries have no plant/inverter id, so no curve is available.
+        if (params["plantid"] == "0") return envelope(JSONObject().put(key, JSONArray()))
         val date = params["date"] ?: LocalDate.now().toString()
         val root = response(post("$BASE_URL$route", session.token, mapOf(
             "AutoId" to (params["plantid"] ?: ""), "inDate" to date, "plantsId" to (params["plantid"] ?: ""), "memberAutoID" to session.secret,
