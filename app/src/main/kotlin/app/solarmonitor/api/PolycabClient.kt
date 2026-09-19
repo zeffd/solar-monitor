@@ -85,16 +85,18 @@ class PolycabClient(
             // those real values instead of treating the account as a failed login.
             val stats = root.optJSONObject("statistic")
             val production = stats?.optJSONObject("production")
+            val overview = response(post("$BASE_URL/monitoringOverView", session.token, mapOf("MemberID" to session.secret)))
+            val power = overview.optJSONObject("powerStatus")
             plants.put(JSONObject().apply {
                 put("pid", 0)
                 put("name", "Polycab monitoring summary")
                 put("status", 0)
                 put("nominalPower", number(stats ?: JSONObject(), "capacity"))
-                put("outputPower", number(stats ?: JSONObject(), "power"))
-                put("energy", number(production ?: JSONObject(), "today"))
-                put("energyMonth", 0)
-                put("energyYear", 0)
-                put("energyTotal", number(production ?: JSONObject(), "total"))
+                put("outputPower", number(power ?: stats ?: JSONObject(), "currPac", "power"))
+                put("energy", number(power ?: production ?: JSONObject(), "EToday", "today"))
+                put("energyMonth", number(power ?: JSONObject(), "Month"))
+                put("energyYear", number(power ?: JSONObject(), "Year"))
+                put("energyTotal", number(power ?: production ?: JSONObject(), "ETotal", "total"))
                 put("address", JSONObject().put("timezone", 19800))
             })
         }

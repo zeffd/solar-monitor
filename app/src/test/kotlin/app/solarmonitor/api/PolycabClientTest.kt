@@ -41,11 +41,16 @@ class PolycabClientTest {
 
     @Test fun `account statistics become a dashboard summary when no plants are listed`() {
         val session = Session("token", "42", Long.MAX_VALUE, PolycabClient.BASE_URL)
-        val client = PolycabClient(post = { url, token, fields ->
-            assertEquals("${PolycabClient.BASE_URL}/getAllPlantsInfo", url)
-            assertEquals("token", token)
-            assertEquals("42", fields["memberAutoID"])
-            "{\"plants\":[],\"statistic\":{\"capacity\":5.5,\"power\":2.1,\"production\":{\"today\":8.2,\"total\":1234.5}}}"
+        val client = PolycabClient(post = { url, token, fields -> when (url) {
+            "${PolycabClient.BASE_URL}/getAllPlantsInfo" -> {
+                assertEquals("token", token)
+                assertEquals("42", fields["memberAutoID"])
+                "{\"plants\":[],\"statistic\":{\"capacity\":5.5,\"power\":2.1,\"production\":{\"today\":8.2,\"total\":1234.5}}}"
+            }
+            "${PolycabClient.BASE_URL}/monitoringOverView" ->
+                "{\"powerStatus\":{\"currPac\":2.1,\"EToday\":8.2,\"Month\":21.4,\"Year\":156.7,\"ETotal\":1234.5}}"
+            else -> error("Unexpected URL: $url")
+        }
         })
 
         val plants = Parsers.parsePlants(client.get(session, Actions.plants()))
@@ -55,6 +60,8 @@ class PolycabClientTest {
         assertEquals(0L, plants.single().pid)
         assertEquals(2.1, plants.single().outputKw, 0.0)
         assertEquals(8.2, plants.single().todayKwh, 0.0)
+        assertEquals(21.4, plants.single().monthKwh, 0.0)
+        assertEquals(156.7, plants.single().yearKwh, 0.0)
         assertEquals(1234.5, plants.single().totalKwh, 0.0)
     }
 }
